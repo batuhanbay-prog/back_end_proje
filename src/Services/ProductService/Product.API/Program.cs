@@ -126,4 +126,11 @@ app.UseAuthorization();
 // --- Map Controllers ---
 app.MapControllers();
 
+// --- Veritabanını otomatik oluştur ---
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
+    await db.Database.EnsureCreatedAsync();
+}
+
 app.Run();

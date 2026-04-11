@@ -128,9 +128,11 @@ app.UseAuthorization();
 // --- Map Controllers ---
 app.MapControllers();
 
-// --- Seed Data (Admin kullanıcı + roller) ---
+// --- Veritabanını otomatik oluştur + Seed Data ---
 using (var scope = app.Services.CreateScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+    await db.Database.EnsureCreatedAsync();
     await DataSeeder.SeedAsync(scope.ServiceProvider);
 }
 
