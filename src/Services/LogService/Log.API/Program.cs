@@ -2,9 +2,11 @@ using System.Text;
 using Log.Application.Interfaces;
 using Log.Application.Mappings;
 using Log.Application.Queries.GetLogs;
+using Log.Infrastructure.Consumers;
 using Log.Infrastructure.Data;
 using Log.Infrastructure.Logging;
 using Log.Infrastructure.Repositories;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +37,23 @@ builder.Services.AddAutoMapper(typeof(LogMappingProfile));
 
 // --- Repository (DI) ---
 builder.Services.AddScoped<ILogRepository, LogRepository>();
+
+// --- MassTransit (RabbitMQ Consumer) ---
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<ProductCreatedEventConsumer>();
+    x.AddConsumer<ProductUpdatedEventConsumer>();
+
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+        });
+        cfg.ConfigureEndpoints(ctx);
+    });
+});
 
 // --- JWT Authentication ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

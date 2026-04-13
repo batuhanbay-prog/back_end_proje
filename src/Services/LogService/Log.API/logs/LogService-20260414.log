@@ -1,0 +1,3 @@
+2026-04-14 00:14:11.249 [INF] [LogService] Configured endpoint ProductCreatedEvent, Consumer: Log.Infrastructure.Consumers.ProductCreatedEventConsumer
+2026-04-14 00:14:11.499 [INF] [LogService] Configured endpoint ProductUpdatedEvent, Consumer: Log.Infrastructure.Consumers.ProductUpdatedEventConsumer
+2026-04-14 00:14:13.814 [INF] [LogService] Bus started: "rabbitmq://localhost/"

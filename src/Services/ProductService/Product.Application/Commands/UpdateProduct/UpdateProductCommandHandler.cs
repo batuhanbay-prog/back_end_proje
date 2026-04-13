@@ -3,6 +3,7 @@ using MediatR;
 using Product.Application.DTOs;
 using Product.Application.Interfaces;
 using Shared.Common.Constants;
+using Shared.Common.Events;
 using Shared.Common.Exceptions;
 
 namespace Product.Application.Commands.UpdateProduct;
@@ -16,12 +17,14 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
     private readonly IProductRepository _repository;
     private readonly ICacheService _cacheService;
     private readonly IMapper _mapper;
+    private readonly IEventBus _eventBus;
 
-    public UpdateProductCommandHandler(IProductRepository repository, ICacheService cacheService, IMapper mapper)
+    public UpdateProductCommandHandler(IProductRepository repository, ICacheService cacheService, IMapper mapper, IEventBus eventBus)
     {
         _repository = repository;
         _cacheService = cacheService;
         _mapper = mapper;
+        _eventBus = eventBus;
     }
 
     public async Task<ProductDto> Handle(UpdateProductCommand request, CancellationToken cancellationToken)
@@ -42,7 +45,16 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         await _cacheService.RemoveAsync(CacheKeys.AllProducts);
         await _cacheService.RemoveAsync(CacheKeys.ProductById(product.Id));
 
-        // Event fırlatma — ADIM 7'de MassTransit ile eklenecek
+        // ProductUpdatedEvent fırlat → RabbitMQ → Log Service consume eder
+        await _eventBus.PublishAsync(new ProductUpdatedEvent
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            NewPrice = product.Price,
+            NewStock = product.Stock,
+            UpdatedDate = product.UpdatedDate ?? DateTime.UtcNow,
+            UpdatedBy = "system"
+        });
 
         return _mapper.Map<ProductDto>(product);
     }

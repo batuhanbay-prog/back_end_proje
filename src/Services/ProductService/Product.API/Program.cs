@@ -1,5 +1,6 @@
 using System.Text;
 using FluentValidation;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using Product.Application.Interfaces;
 using Product.Application.Mappings;
 using Product.Infrastructure.Caching;
 using Product.Infrastructure.Data;
+using Product.Infrastructure.Messaging;
 using Product.Infrastructure.Repositories;
 using Shared.Common.Middleware;
 using StackExchange.Redis;
@@ -41,6 +43,21 @@ builder.Services.AddAutoMapper(typeof(ProductMappingProfile));
 
 // --- Repository (DI) ---
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+
+// --- MassTransit (RabbitMQ Event Publisher) ---
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+        });
+        cfg.ConfigureEndpoints(ctx);
+    });
+});
+builder.Services.AddScoped<IEventBus, MassTransitEventBus>();
 
 // --- JWT Authentication ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
