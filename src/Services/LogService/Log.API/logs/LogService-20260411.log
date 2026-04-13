@@ -1,0 +1,3 @@
+2026-04-11 17:08:35.116 [INF] [LogService] HTTP GET /swagger/index.html responded 200 in 304.7320 ms
+2026-04-11 17:08:50.616 [INF] [LogService] HTTP GET /api/Log responded 401 in 87.5174 ms
+2026-04-11 17:09:51.398 [INF] [LogService] HTTP GET /api/Log responded 200 in 1906.9894 ms
