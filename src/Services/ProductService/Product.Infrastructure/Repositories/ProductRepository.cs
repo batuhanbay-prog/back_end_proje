@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Product.Application.Interfaces;
 using Product.Infrastructure.Data;
@@ -42,5 +43,18 @@ public class ProductRepository : IProductRepository
     {
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// T-SQL Raw Query örneği — kategoriye göre ürün listesi.
+    /// PDF gereksinimi: "Programlama Dili: C#, Transact-SQL"
+    /// </summary>
+    public async Task<List<Product.Domain.Entities.Product>> GetByCategoryAsync(string category)
+    {
+        var param = new SqlParameter("@category", category);
+        return await _context.Products
+            .FromSqlRaw("SELECT * FROM Products WHERE Category = @category AND IsActive = 1", param)
+            .AsNoTracking()
+            .ToListAsync();
     }
 }

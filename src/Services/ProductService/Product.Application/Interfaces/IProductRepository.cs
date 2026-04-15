@@ -12,4 +12,5 @@ public interface IProductRepository
     Task AddAsync(Product.Domain.Entities.Product product);
     Task UpdateAsync(Product.Domain.Entities.Product product);
     Task DeleteAsync(Product.Domain.Entities.Product product);
+    Task<List<Product.Domain.Entities.Product>> GetByCategoryAsync(string category);
 }

@@ -16,5 +16,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product.Domain.Enti
         builder.Property(p => p.Price).HasColumnType("decimal(18,2)");
         builder.Property(p => p.Category).HasMaxLength(100);
         builder.Property(p => p.IsActive).HasDefaultValue(true);
+
+        // T-SQL index tanımları — sorgu performansı için
+        builder.HasIndex(p => p.Name);
+        builder.HasIndex(p => p.Category);
+        builder.HasIndex(p => p.IsActive);
     }
 }
