@@ -7,6 +7,7 @@ using Product.Application.Commands.UpdateProduct;
 using Product.Application.DTOs;
 using Product.Application.Queries.GetAllProducts;
 using Product.Application.Queries.GetProductById;
+using Product.Application.Queries.GetProductsByCategory;
 using Shared.Common.Responses;
 
 namespace Product.API.Controllers;
@@ -71,6 +72,17 @@ public class ProductController : ControllerBase
         command.Id = id;
         var result = await _mediator.Send(command);
         return Ok(ApiResponse<ProductDto>.Ok(result, "Ürün güncellendi."));
+    }
+
+    /// <summary>
+    /// Kategoriye göre ürün listeler — Raw T-SQL sorgusu kullanır.
+    /// </summary>
+    [HttpGet("category/{category}")]
+    [ProducesResponseType(typeof(ApiResponse<List<ProductDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByCategory(string category)
+    {
+        var result = await _mediator.Send(new GetProductsByCategoryQuery { Category = category });
+        return Ok(ApiResponse<List<ProductDto>>.Ok(result));
     }
 
     /// <summary>
