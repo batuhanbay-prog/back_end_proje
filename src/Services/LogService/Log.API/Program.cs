@@ -164,7 +164,11 @@ lifetime.ApplicationStopped.Register(() =>
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<LogDbContext>();
-    await db.Database.MigrateAsync();
+    for (int retry = 0; retry < 5; retry++)
+    {
+        try { await db.Database.MigrateAsync(); break; }
+        catch (Exception) when (retry < 4) { await Task.Delay(4000); }
+    }
 }
 
 app.Run();
