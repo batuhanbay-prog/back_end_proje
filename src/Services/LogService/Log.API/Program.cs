@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text;
 using Log.Application.Interfaces;
@@ -123,6 +124,10 @@ builder.Services.AddSwaggerGen(options =>
             Array.Empty<string>()
         }
     });
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+    if (File.Exists(xmlPath)) options.IncludeXmlComments(xmlPath);
 });
 
 var app = builder.Build();
