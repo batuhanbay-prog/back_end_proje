@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text;
 using Log.Application.Interfaces;
 using Log.Application.Mappings;
@@ -25,8 +26,13 @@ SerilogConfiguration.Configure(builder.Configuration, "LogService");
 builder.Host.UseSerilog();
 
 // --- DbContext (SQL Server) ---
+var logConnStr = builder.Configuration.GetConnectionString("DefaultConnection")!;
 builder.Services.AddDbContext<LogDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(logConnStr));
+
+// --- Health Checks (10.12 - Admin Prosesleri) ---
+builder.Services.AddHealthChecks()
+    .AddSqlServer(logConnStr, name: "sqlserver", tags: new[] { "db" });
 
 // --- MediatR + CQRS ---
 builder.Services.AddMediatR(cfg =>
@@ -140,6 +146,19 @@ app.UseAuthorization();
 
 // --- Map Controllers ---
 app.MapControllers();
+
+// --- Health Check Endpoint (10.12) ---
+app.MapHealthChecks("/health");
+
+// --- Graceful Shutdown (10.9 - Disposability) ---
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+    Serilog.Log.Information("[LogService] Uygulama kapatiliyor..."));
+lifetime.ApplicationStopped.Register(() =>
+{
+    Serilog.Log.Information("[LogService] Uygulama tamamen kapatildi.");
+    Serilog.Log.CloseAndFlush();
+});
 
 // --- Veritabanını otomatik oluştur ---
 using (var scope = app.Services.CreateScope())

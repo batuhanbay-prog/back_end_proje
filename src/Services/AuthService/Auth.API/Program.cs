@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Reflection;
 using System.Text;
 using Auth.Application.Interfaces;
@@ -17,8 +18,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 // --- DbContext (SQL Server) ---
+var authConnStr = builder.Configuration.GetConnectionString("DefaultConnection")!;
 builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(authConnStr));
+
+// --- Health Checks (10.12 - Admin Prosesleri) ---
+builder.Services.AddHealthChecks()
+    .AddSqlServer(authConnStr, name: "sqlserver", tags: new[] { "db" });
 
 // --- Microsoft Identity ---
 builder.Services.AddIdentity<AppUser, AppRole>(options =>
@@ -127,6 +133,16 @@ app.UseAuthorization();
 
 // --- Map Controllers ---
 app.MapControllers();
+
+// --- Health Check Endpoint (10.12) ---
+app.MapHealthChecks("/health");
+
+// --- Graceful Shutdown (10.9 - Disposability) ---
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+    app.Logger.LogInformation("[AuthService] Uygulama kapatiliyor..."));
+lifetime.ApplicationStopped.Register(() =>
+    app.Logger.LogInformation("[AuthService] Uygulama tamamen kapatildi."));
 
 // --- Veritabanını otomatik oluştur + Seed Data ---
 using (var scope = app.Services.CreateScope())

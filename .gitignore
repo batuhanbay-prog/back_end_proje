@@ -42,3 +42,7 @@ Desktop.ini
 ## Environment
 appsettings.Development.json
 *.env
+
+## Logs
+logs/
+*.log

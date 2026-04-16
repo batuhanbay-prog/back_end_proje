@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using System.Text;
 using FluentValidation;
 using MassTransit;
@@ -22,13 +23,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
 // --- DbContext (SQL Server) ---
+var productConnStr = builder.Configuration.GetConnectionString("DefaultConnection")!;
 builder.Services.AddDbContext<ProductDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(productConnStr));
 
 // --- Redis ---
+var redisConnStr = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"));
+    ConnectionMultiplexer.Connect(redisConnStr));
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
+
+// --- Health Checks (10.12 - Admin Prosesleri) ---
+builder.Services.AddHealthChecks()
+    .AddSqlServer(productConnStr, name: "sqlserver", tags: new[] { "db" })
+    .AddRedis(redisConnStr, name: "redis", tags: new[] { "cache" });
 
 // --- MediatR + CQRS ---
 builder.Services.AddMediatR(cfg =>
@@ -142,6 +150,16 @@ app.UseAuthorization();
 
 // --- Map Controllers ---
 app.MapControllers();
+
+// --- Health Check Endpoint (10.12) ---
+app.MapHealthChecks("/health");
+
+// --- Graceful Shutdown (10.9 - Disposability) ---
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+    app.Logger.LogInformation("[ProductService] Uygulama kapatiliyor..."));
+lifetime.ApplicationStopped.Register(() =>
+    app.Logger.LogInformation("[ProductService] Uygulama tamamen kapatildi."));
 
 // --- Veritabanını otomatik oluştur ---
 using (var scope = app.Services.CreateScope())
