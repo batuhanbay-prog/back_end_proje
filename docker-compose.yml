@@ -44,5 +44,94 @@ services:
       timeout: 10s
       retries: 5
 
+  auth-api:
+    build:
+      context: .
+      dockerfile: src/Services/AuthService/Auth.API/Dockerfile
+    container_name: auth-api
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=AuthDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: on-failure
+    stop_grace_period: 10s
+
+  product-api:
+    build:
+      context: .
+      dockerfile: src/Services/ProductService/Product.API/Dockerfile
+    container_name: product-api
+    ports:
+      - "5002:5002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=ProductDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+      - JwtSettings__SecretKey=BuCokGizliBirAnahtarEnAz32KarakterOlmali!
+      - JwtSettings__Issuer=MicroserviceProject
+      - JwtSettings__Audience=MicroserviceProject
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+    stop_grace_period: 10s
+
+  log-api:
+    build:
+      context: .
+      dockerfile: src/Services/LogService/Log.API/Dockerfile
+    container_name: log-api
+    ports:
+      - "5003:5003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=LogDb;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+      - JwtSettings__SecretKey=BuCokGizliBirAnahtarEnAz32KarakterOlmali!
+      - JwtSettings__Issuer=MicroserviceProject
+      - JwtSettings__Audience=MicroserviceProject
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+    stop_grace_period: 10s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: src/ApiGateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - JwtSettings__SecretKey=BuCokGizliBirAnahtarEnAz32KarakterOlmali!
+      - JwtSettings__Issuer=MicroserviceProject
+      - JwtSettings__Audience=MicroserviceProject
+      - ReverseProxy__Clusters__auth-cluster__Destinations__auth__Address=http://auth-api:5001
+      - ReverseProxy__Clusters__product-cluster__Destinations__product__Address=http://product-api:5002
+      - ReverseProxy__Clusters__log-cluster__Destinations__log__Address=http://log-api:5003
+    depends_on:
+      - auth-api
+      - product-api
+      - log-api
+    restart: on-failure
+    stop_grace_period: 10s
+
 volumes:
   sqlserver_data:
